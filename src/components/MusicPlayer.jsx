@@ -199,6 +199,8 @@ export default function MusicPlayer() {
     if (playing) { p.pauseVideo(); setPlaying(false) }
     else { try { p.unMute() } catch {}; setMuted(false); p.playVideo() }
   }
+  const next = () => { try { playerRef.current && playerRef.current.nextVideo && playerRef.current.nextVideo() } catch {} }
+  const prev = () => { try { playerRef.current && playerRef.current.previousVideo && playerRef.current.previousVideo() } catch {} }
   const onMuteToggle = () => {
     const p = playerRef.current
     if (!p || !ready) return
@@ -291,6 +293,16 @@ export default function MusicPlayer() {
 
           {/* PLAY BUTTON — large amber gradient with rotating dotted ring */}
           <div className="relative shrink-0">
+            <button
+              onClick={prev}
+              aria-label="Previous"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            </button>
+          </div>
+
+          <div className="relative shrink-0">
             {playing && (
               <div
                 className="absolute inset-0 animate-spin"
@@ -325,6 +337,16 @@ export default function MusicPlayer() {
               ) : (
                 <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px] ml-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               )}
+            </button>
+          </div>
+
+          <div className="relative shrink-0">
+            <button
+              onClick={next}
+              aria-label="Next"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
             </button>
           </div>
         </div>
