@@ -2,7 +2,7 @@ export default function Title() {
   return (
     <div className="flex flex-col items-center text-center select-none animate-flicker-in">
       <h1
-        className="font-ml text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-kada-milk leading-none"
+        className="font-ml text-4xl xs:text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-semibold text-kada-milk leading-none"
         style={{
           textShadow:
             '0 0 30px rgba(224,123,58,0.45), 0 2px 12px rgba(0,0,0,0.7)',

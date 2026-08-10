@@ -51,23 +51,18 @@ function AlbumCover({ src, playing }) {
   return (
     <div className="relative shrink-0">
       <div
-        className="relative h-16 w-16 sm:h-[72px] sm:w-[72px]"
-        style={{
-          animation: 'coverPop 0.6s ease-out',
-        }}
+        className="relative h-12 w-12 xs:h-14 sm:h-[72px] sm:w-[72px]"
+        style={{ animation: 'coverPop 0.6s ease-out' }}
       >
-        {/* Outer vinyl ring */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background:
-              'radial-gradient(circle, #1a0f0a 0%, #2a1a10 35%, #0d0703 60%, #1a0f0a 100%)',
+            background: 'radial-gradient(circle, #1a0f0a 0%, #2a1a10 35%, #0d0703 60%, #1a0f0a 100%)',
             boxShadow: playing
-              ? '0 0 22px rgba(224,123,58,0.4), 0 4px 14px rgba(0,0,0,0.7)'
-              : '0 4px 14px rgba(0,0,0,0.6)',
+              ? '0 0 18px rgba(224,123,58,0.4), 0 4px 12px rgba(0,0,0,0.7)'
+              : '0 4px 12px rgba(0,0,0,0.6)',
           }}
         >
-          {/* Vinyl grooves */}
           <div
             className="absolute inset-0 rounded-full opacity-50"
             style={{
@@ -75,13 +70,9 @@ function AlbumCover({ src, playing }) {
                 'repeating-radial-gradient(circle, transparent 0px, transparent 3px, rgba(255,255,255,0.04) 3px, rgba(255,255,255,0.04) 4px)',
             }}
           />
-          {/* Rotating inner disc with artwork */}
           <div
             className="absolute rounded-full overflow-hidden"
-            style={{
-              inset: '14%',
-              animation: playing ? 'vinylSpin 8s linear infinite' : 'none',
-            }}
+            style={{ inset: '14%', animation: playing ? 'vinylSpin 8s linear infinite' : 'none' }}
           >
             {src ? (
               <img src={src} alt="" className="h-full w-full object-cover" />
@@ -94,12 +85,10 @@ function AlbumCover({ src, playing }) {
                 }}
               />
             )}
-            {/* Center label hole */}
             <div
-              className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-kada-ink"
+              className="absolute left-1/2 top-1/2 h-1 w-1 sm:h-1.5 sm:w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-kada-ink"
               style={{ boxShadow: 'inset 0 0 2px rgba(0,0,0,0.8)' }}
             />
-            {/* Gloss */}
             <div
               className="absolute inset-0 pointer-events-none rounded-full"
               style={{
@@ -224,7 +213,7 @@ export default function MusicPlayer() {
       <div ref={hostRef} aria-hidden style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} />
 
       <div
-        className="relative overflow-hidden rounded-full border border-kada-amber/20 backdrop-blur-2xl"
+        className="relative overflow-hidden rounded-2xl sm:rounded-full border border-kada-amber/20 backdrop-blur-2xl"
         style={{
           background:
             'linear-gradient(135deg, rgba(42,26,16,0.7) 0%, rgba(26,15,10,0.55) 50%, rgba(42,26,16,0.7) 100%)',
@@ -240,13 +229,13 @@ export default function MusicPlayer() {
           }}
         />
 
-        <div className="relative flex items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+        <div className="relative flex items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           {/* LEFT: Album artwork */}
           <AlbumCover src={cover} playing={playing} />
 
           {/* CENTER: Title + meta */}
-          <div className="min-w-0 flex-1 pr-2">
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1 pr-1 sm:pr-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="relative flex h-1.5 w-1.5">
                 <span
                   className="absolute inline-flex h-full w-full rounded-full bg-kada-ember"
@@ -254,22 +243,22 @@ export default function MusicPlayer() {
                 />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-kada-ember" style={{ boxShadow: '0 0 6px rgba(224,123,58,0.9)' }} />
               </span>
-              <span className="font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.45em] text-kada-amber/75">
+              <span className="font-sans text-[9px] sm:text-[11px] uppercase tracking-[0.35em] sm:tracking-[0.45em] text-kada-amber/75">
                 {playing ? 'Now Playing' : 'Paused'}
               </span>
             </div>
             <div
-              className="mt-1 truncate font-serif text-base sm:text-xl text-kada-milk"
+              className="mt-0.5 sm:mt-1 truncate font-serif text-sm sm:text-xl text-kada-milk"
               style={{ textShadow: '0 1px 8px rgba(0,0,0,0.7)', letterSpacing: '0.01em' }}
             >
               {track.title || (ready ? 'Old Malayalam Melodies' : 'Pouring chaya...')}
             </div>
-            <div className="truncate font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-kada-amber/65">
+            <div className="truncate font-sans text-[9px] sm:text-[11px] uppercase tracking-[0.25em] sm:tracking-[0.3em] text-kada-amber/65">
               {track.artist || 'Various Artists'}
             </div>
           </div>
 
-          {/* RIGHT: waveform + time + volume */}
+          {/* RIGHT: waveform + time + volume (desktop only) */}
           <div className="hidden sm:flex shrink-0 flex-col items-end gap-1.5">
             <Waveform active={playing} />
             <div className="flex items-center gap-2 font-sans text-[10px] tabular-nums text-kada-milk/70">
@@ -291,21 +280,20 @@ export default function MusicPlayer() {
             )}
           </button>
 
-          {/* PLAY BUTTON — large amber gradient with rotating dotted ring */}
-          <div className="relative shrink-0">
-            <button
-              onClick={prev}
-              aria-label="Previous"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-            </button>
-          </div>
+          {/* PREV button */}
+          <button
+            onClick={prev}
+            aria-label="Previous"
+            className="flex h-8 w-8 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          </button>
 
+          {/* PLAY BUTTON — large amber gradient with rotating dotted ring */}
           <div className="relative shrink-0">
             {playing && (
               <div
-                className="absolute inset-0 animate-spin"
+                className="absolute -inset-1.5 animate-spin"
                 style={{ animationDuration: '12s' }}
                 aria-hidden
               >
@@ -325,30 +313,29 @@ export default function MusicPlayer() {
             <button
               onClick={toggle}
               aria-label={playing ? 'Pause' : 'Play'}
-              className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-kada-ink transition active:scale-95"
+              className="relative flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full text-kada-ink transition active:scale-95"
               style={{
                 background: 'radial-gradient(circle at 30% 30%, #f0a865 0%, #e07b3a 55%, #a04e1a 100%)',
                 boxShadow:
-                  '0 0 18px rgba(224,123,58,0.5), 0 4px 12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.2)',
+                  '0 0 16px rgba(224,123,58,0.5), 0 3px 10px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.2)',
               }}
             >
               {playing ? (
-                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-[18px] sm:w-[18px]" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
               ) : (
-                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px] ml-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-[18px] sm:w-[18px] ml-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
               )}
             </button>
           </div>
 
-          <div className="relative shrink-0">
-            <button
-              onClick={next}
-              aria-label="Next"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
-            >
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
-            </button>
-          </div>
+          {/* NEXT button */}
+          <button
+            onClick={next}
+            aria-label="Next"
+            className="flex h-8 w-8 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
+          >
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+          </button>
         </div>
 
         {/* Progress bar — full width across the bottom */}
@@ -365,17 +352,10 @@ export default function MusicPlayer() {
               boxShadow: '0 0 8px rgba(224,123,58,0.7)',
             }}
           />
-          <span
-            className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-kada-milk opacity-0 transition group-hover:opacity-100"
-            style={{
-              left: `calc(${progress * 100}% - 4px)`,
-              boxShadow: '0 0 8px rgba(255,255,255,0.7)',
-            }}
-          />
         </div>
 
         {/* Mobile-only time row */}
-        <div className="flex sm:hidden items-center justify-between px-4 pb-2 pt-1 font-sans text-[10px] tabular-nums text-kada-milk/60">
+        <div className="flex sm:hidden items-center justify-between px-3 pb-1.5 pt-0.5 font-sans text-[9px] tabular-nums text-kada-milk/55">
           <span>{fmtTime(current)}</span>
           <span>{fmtTime(duration)}</span>
         </div>
@@ -383,7 +363,7 @@ export default function MusicPlayer() {
 
       {/* Ambient glow under the player */}
       <div
-        className="pointer-events-none absolute inset-x-10 -bottom-4 h-8 rounded-full opacity-60 blur-2xl"
+        className="pointer-events-none absolute inset-x-6 sm:inset-x-10 -bottom-3 sm:-bottom-4 h-6 sm:h-8 rounded-full opacity-50 sm:opacity-60 blur-2xl"
         style={{ background: 'radial-gradient(ellipse, rgba(224,123,58,0.45), transparent 70%)' }}
         aria-hidden
       />

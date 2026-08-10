@@ -1,11 +1,26 @@
-export default function RainEffect({ count = 90 }) {
-  const drops = Array.from({ length: count }, (_, i) => {
-    const left = (i * 13 + (i % 7) * 11) % 100
-    const duration = 0.5 + ((i * 0.07) % 0.7)
-    const delay = -((i * 0.13) % 2)
-    const opacity = 0.25 + ((i * 0.041) % 0.4)
-    return { left, duration, delay, opacity, i }
-  })
+import { useEffect, useMemo, useState } from 'react'
+
+export default function RainEffect() {
+  const [count, setCount] = useState(90)
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 640px)')
+    const update = () => setCount(mq.matches ? 35 : 90)
+    update()
+    mq.addEventListener?.('change', update)
+    return () => mq.removeEventListener?.('change', update)
+  }, [])
+
+  const drops = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => {
+        const left = (i * 13 + (i % 7) * 11) % 100
+        const duration = 0.5 + ((i * 0.07) % 0.7)
+        const delay = -((i * 0.13) % 2)
+        const opacity = 0.25 + ((i * 0.041) % 0.4)
+        return { left, duration, delay, opacity, i }
+      }),
+    [count],
+  )
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
