@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-const PLACEHOLDER_PLAYLIST = 'PL_PLACEHOLDER_REPLACE_ME'
+const PLAYLIST_ID = 'PLLsxRMbTC-5k'
 
 function loadYouTubeApi() {
   if (window.YT && window.YT.Player) return Promise.resolve(window.YT)
@@ -33,7 +33,7 @@ export default function MusicPlayer() {
         width: '0',
         playerVars: {
           listType: 'playlist',
-          list: PLACEHOLDER_PLAYLIST,
+          list: PLAYLIST_ID,
           loop: 1,
           autoplay: 0,
           controls: 0,
