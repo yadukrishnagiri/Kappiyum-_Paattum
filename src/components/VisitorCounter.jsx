@@ -75,7 +75,10 @@ export default function VisitorCounter() {
           {total != null ? fmt(total) : '—'}
         </span>
       </div>
-      <div className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-kada-amber/70 mt-1">
+      <div
+        className="text-[10px] sm:text-xs uppercase tracking-[0.35em] text-kada-amber/70 mt-1"
+        style={{ display: 'none' }}
+      >
         {label}
       </div>
     </div>
