@@ -23,27 +23,96 @@ function loadYouTubeApi() {
 }
 
 function Waveform({ active }) {
+  const bars = [0.42, 0.78, 0.55, 1, 0.68, 0.5, 0.88, 0.46, 0.95, 0.62, 0.82, 0.5, 0.74, 0.9, 0.58]
   return (
-    <div className="flex h-4 items-end gap-[2px]" aria-hidden>
-      {[0.45, 0.9, 0.6, 1, 0.7, 0.55, 0.85, 0.5, 0.95, 0.65].map((h, i) => (
+    <div className="flex h-6 items-end gap-[3px]" aria-hidden>
+      {bars.map((h, i) => (
         <span
           key={i}
-          className="w-[1.5px] rounded-full bg-kada-ember/85"
+          className="w-[2px] rounded-full"
           style={{
-            height: active ? `${h * 100}%` : '20%',
+            height: active ? `${h * 100}%` : '18%',
+            background: active
+              ? 'linear-gradient(to top, #d4a056, #e07b3a)'
+              : 'rgba(233,213,176,0.4)',
             transformOrigin: 'bottom',
-            animation: active
-              ? `wave 1.${(i % 4) + 1}s ease-in-out infinite`
-              : 'none',
-            animationDelay: `${i * 0.07}s`,
+            animation: active ? `waveBar 1.${(i % 5) + 1}s ease-in-out infinite` : 'none',
+            animationDelay: `${i * 0.06}s`,
+            boxShadow: active ? '0 0 4px rgba(224,123,58,0.55)' : 'none',
           }}
         />
       ))}
+      <style>{`@keyframes waveBar { 0%,100% { transform: scaleY(0.3); opacity: 0.7; } 50% { transform: scaleY(1); opacity: 1; } }`}</style>
+    </div>
+  )
+}
+
+function AlbumCover({ src, playing }) {
+  return (
+    <div className="relative shrink-0">
+      <div
+        className="relative h-16 w-16 sm:h-[72px] sm:w-[72px]"
+        style={{
+          animation: 'coverPop 0.6s ease-out',
+        }}
+      >
+        {/* Outer vinyl ring */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background:
+              'radial-gradient(circle, #1a0f0a 0%, #2a1a10 35%, #0d0703 60%, #1a0f0a 100%)',
+            boxShadow: playing
+              ? '0 0 22px rgba(224,123,58,0.4), 0 4px 14px rgba(0,0,0,0.7)'
+              : '0 4px 14px rgba(0,0,0,0.6)',
+          }}
+        >
+          {/* Vinyl grooves */}
+          <div
+            className="absolute inset-0 rounded-full opacity-50"
+            style={{
+              background:
+                'repeating-radial-gradient(circle, transparent 0px, transparent 3px, rgba(255,255,255,0.04) 3px, rgba(255,255,255,0.04) 4px)',
+            }}
+          />
+          {/* Rotating inner disc with artwork */}
+          <div
+            className="absolute rounded-full overflow-hidden"
+            style={{
+              inset: '14%',
+              animation: playing ? 'vinylSpin 8s linear infinite' : 'none',
+            }}
+          >
+            {src ? (
+              <img src={src} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <div
+                className="h-full w-full"
+                style={{
+                  background:
+                    'radial-gradient(circle at 30% 25%, rgba(224,123,58,0.55), rgba(61,36,21,0.95) 70%)',
+                }}
+              />
+            )}
+            {/* Center label hole */}
+            <div
+              className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-kada-ink"
+              style={{ boxShadow: 'inset 0 0 2px rgba(0,0,0,0.8)' }}
+            />
+            {/* Gloss */}
+            <div
+              className="absolute inset-0 pointer-events-none rounded-full"
+              style={{
+                background:
+                  'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, transparent 40%, transparent 70%, rgba(0,0,0,0.25) 100%)',
+              }}
+            />
+          </div>
+        </div>
+      </div>
       <style>{`
-        @keyframes wave {
-          0%, 100% { transform: scaleY(0.35); opacity: 0.6; }
-          50% { transform: scaleY(1); opacity: 1; }
-        }
+        @keyframes vinylSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes coverPop { 0% { transform: scale(0.92); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
       `}</style>
     </div>
   )
@@ -62,9 +131,9 @@ export default function MusicPlayer() {
   const [duration, setDuration] = useState(0)
 
   useEffect(() => {
-    loadPlaylist().then((t) => {
-      setTracks(Array.isArray(t) ? t : [])
-    }).catch(() => setTracks([]))
+    loadPlaylist()
+      .then((t) => setTracks(Array.isArray(t) ? t : []))
+      .catch(() => setTracks([]))
   }, [])
 
   useEffect(() => {
@@ -105,6 +174,7 @@ export default function MusicPlayer() {
     return () => {
       cancelled = true
       try { playerRef.current && playerRef.current.destroy && playerRef.current.destroy() } catch {}
+      cancelAnimationFrame(rafRef.current)
     }
   }, [])
 
@@ -127,19 +197,13 @@ export default function MusicPlayer() {
     const p = playerRef.current
     if (!p || !ready) return
     if (playing) { p.pauseVideo(); setPlaying(false) }
-    else {
-      try { p.unMute() } catch {}
-      setMuted(false)
-      p.playVideo()
-    }
+    else { try { p.unMute() } catch {}; setMuted(false); p.playVideo() }
   }
-  const next = () => { try { playerRef.current && playerRef.current.nextVideo && playerRef.current.nextVideo() } catch {} }
-  const prev = () => { try { playerRef.current && playerRef.current.previousVideo && playerRef.current.previousVideo() } catch {} }
   const onMuteToggle = () => {
     const p = playerRef.current
     if (!p || !ready) return
-    if (muted) { try { p.unMute(); p.setVolume && p.setVolume(70) } catch {} ; setMuted(false) }
-    else { try { p.mute() } catch {} ; setMuted(true) }
+    if (muted) { try { p.unMute(); p.setVolume && p.setVolume(70) } catch {}; setMuted(false) }
+    else { try { p.mute() } catch {}; setMuted(true) }
   }
   const onSeek = (e) => {
     const p = playerRef.current
@@ -154,128 +218,153 @@ export default function MusicPlayer() {
   const progress = duration > 0 ? Math.min(1, current / duration) : 0
 
   return (
-    <div
-      className="relative w-full max-w-2xl rounded-2xl border border-kada-amber/15 bg-kada-bean/55 px-3 py-2.5 sm:px-4 sm:py-3 backdrop-blur-xl"
-      style={{ boxShadow: '0 14px 50px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(233,213,176,0.06)' }}
-    >
+    <div className="relative w-full max-w-[820px]">
       <div ref={hostRef} aria-hidden style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }} />
 
-      <div className="flex items-center gap-3 sm:gap-4">
-        {/* Left: album cover */}
-        <div className="relative shrink-0">
-          <div
-            className="relative h-12 w-12 sm:h-14 sm:w-14 overflow-hidden rounded-lg border border-kada-amber/20"
-            style={{ boxShadow: playing ? '0 0 22px rgba(224,123,58,0.35)' : '0 4px 14px rgba(0,0,0,0.55)' }}
-          >
-            {cover ? (
-              <img
-                src={cover}
-                alt=""
-                className="h-full w-full object-cover transition-transform duration-700"
-                style={{ transform: playing ? 'rotate(0deg)' : 'rotate(0deg)' }}
-              />
-            ) : (
-              <div
-                className="h-full w-full"
-                style={{
-                  background:
-                    'radial-gradient(circle at 30% 30%, rgba(224,123,58,0.5), rgba(61,36,21,0.95) 70%)',
-                }}
-              />
-            )}
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  'linear-gradient(135deg, rgba(255,255,255,0.08), transparent 40%, rgba(0,0,0,0.25))',
-              }}
-            />
-          </div>
-          {playing && (
-            <span
-              className="absolute -inset-1 rounded-lg pointer-events-none"
-              style={{ boxShadow: '0 0 0 1px rgba(224,123,58,0.25), 0 0 22px rgba(224,123,58,0.35)' }}
-            />
-          )}
-        </div>
+      <div
+        className="relative overflow-hidden rounded-full border border-kada-amber/20 backdrop-blur-2xl"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(42,26,16,0.7) 0%, rgba(26,15,10,0.55) 50%, rgba(42,26,16,0.7) 100%)',
+          boxShadow:
+            '0 30px 80px -30px rgba(0,0,0,0.85), 0 0 40px -10px rgba(224,123,58,0.25), inset 0 1px 0 rgba(233,213,176,0.08), inset 0 -1px 0 rgba(0,0,0,0.4)',
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse at top, rgba(224,123,58,0.08), transparent 60%)',
+          }}
+        />
 
-        {/* Center: title, artist, waveform */}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className={`h-1.5 w-1.5 rounded-full ${playing ? 'bg-kada-ember animate-pulse' : 'bg-kada-milk/40'}`} />
-            <span className="font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.4em] text-kada-amber/70">
-              {playing ? 'Now Playing' : 'Paused'}
-            </span>
-            <span className="ml-2 text-kada-amber/40"><Waveform active={playing} /></span>
-          </div>
-          <div className="mt-0.5 truncate font-serif text-sm sm:text-base text-kada-milk">
-            {track.title || (ready ? 'Old Malayalam Melodies' : 'Pouring chaya...')}
-          </div>
-          <div className="truncate font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.25em] text-kada-amber/60">
-            {track.artist || 'Various Artists'}
-          </div>
+        <div className="relative flex items-center gap-3 px-4 py-2.5 sm:gap-4 sm:px-5 sm:py-3">
+          {/* LEFT: Album artwork */}
+          <AlbumCover src={cover} playing={playing} />
 
-          {/* Progress bar */}
-          <div className="mt-2 flex items-center gap-2">
-            <span className="font-sans text-[10px] tabular-nums text-kada-milk/70">{fmtTime(current)}</span>
-            <div
-              className="group relative h-1 flex-1 cursor-pointer overflow-hidden rounded-full bg-kada-milk/15"
-              onClick={onSeek}
-            >
-              <div
-                className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-kada-amber via-kada-ember to-kada-amber"
-                style={{ width: `${progress * 100}%`, boxShadow: '0 0 8px rgba(224,123,58,0.55)' }}
-              />
-              <span
-                className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-kada-milk opacity-0 transition group-hover:opacity-100"
-                style={{ left: `calc(${progress * 100}% - 5px)` }}
-              />
+          {/* CENTER: Title + meta */}
+          <div className="min-w-0 flex-1 pr-2">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-1.5 w-1.5">
+                <span
+                  className="absolute inline-flex h-full w-full rounded-full bg-kada-ember"
+                  style={{ animation: playing ? 'ping 2s cubic-bezier(0,0,0.2,1) infinite' : 'none', opacity: 0.7 }}
+                />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-kada-ember" style={{ boxShadow: '0 0 6px rgba(224,123,58,0.9)' }} />
+              </span>
+              <span className="font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.45em] text-kada-amber/75">
+                {playing ? 'Now Playing' : 'Paused'}
+              </span>
             </div>
-            <span className="font-sans text-[10px] tabular-nums text-kada-milk/50">{fmtTime(duration)}</span>
+            <div
+              className="mt-1 truncate font-serif text-base sm:text-xl text-kada-milk"
+              style={{ textShadow: '0 1px 8px rgba(0,0,0,0.7)', letterSpacing: '0.01em' }}
+            >
+              {track.title || (ready ? 'Old Malayalam Melodies' : 'Pouring chaya...')}
+            </div>
+            <div className="truncate font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.3em] text-kada-amber/65">
+              {track.artist || 'Various Artists'}
+            </div>
           </div>
-        </div>
 
-        {/* Right: controls */}
-        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-          <CtrlBtn onClick={prev} label="Previous">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-          </CtrlBtn>
+          {/* RIGHT: waveform + time + volume */}
+          <div className="hidden sm:flex shrink-0 flex-col items-end gap-1.5">
+            <Waveform active={playing} />
+            <div className="flex items-center gap-2 font-sans text-[10px] tabular-nums text-kada-milk/70">
+              <span>{fmtTime(current)}</span>
+              <span className="text-kada-milk/30">/</span>
+              <span className="text-kada-milk/45">{fmtTime(duration)}</span>
+            </div>
+          </div>
+
           <button
-            onClick={toggle}
-            aria-label={playing ? 'Pause' : 'Play'}
-            className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-kada-ember text-kada-ink transition active:scale-95 hover:bg-kada-amber"
-            style={{ boxShadow: '0 0 18px rgba(224,123,58,0.5), inset 0 1px 0 rgba(255,255,255,0.2)' }}
+            onClick={onMuteToggle}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            className="hidden sm:flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-kada-milk/75 transition hover:bg-kada-milk/10 hover:text-kada-amber"
           >
-            {playing ? (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            )}
-          </button>
-          <CtrlBtn onClick={next} label="Next">
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
-          </CtrlBtn>
-          <CtrlBtn onClick={onMuteToggle} label={muted ? 'Unmute' : 'Mute'}>
             {muted ? (
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z"/></svg>
             ) : (
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             )}
-          </CtrlBtn>
+          </button>
+
+          {/* PLAY BUTTON — large amber gradient with rotating dotted ring */}
+          <div className="relative shrink-0">
+            {playing && (
+              <div
+                className="absolute inset-0 animate-spin"
+                style={{ animationDuration: '12s' }}
+                aria-hidden
+              >
+                <svg viewBox="0 0 100 100" className="h-full w-full">
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="48"
+                    fill="none"
+                    stroke="rgba(224,123,58,0.35)"
+                    strokeWidth="1.5"
+                    strokeDasharray="2 8"
+                  />
+                </svg>
+              </div>
+            )}
+            <button
+              onClick={toggle}
+              aria-label={playing ? 'Pause' : 'Play'}
+              className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-kada-ink transition active:scale-95"
+              style={{
+                background: 'radial-gradient(circle at 30% 30%, #f0a865 0%, #e07b3a 55%, #a04e1a 100%)',
+                boxShadow:
+                  '0 0 18px rgba(224,123,58,0.5), 0 4px 12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.2)',
+              }}
+            >
+              {playing ? (
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px]" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              ) : (
+                <svg viewBox="0 0 24 24" className="h-4 w-4 sm:h-[18px] sm:w-[18px] ml-0.5" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Progress bar — full width across the bottom */}
+        <div
+          className="group relative h-[2px] w-full cursor-pointer overflow-hidden bg-kada-milk/10"
+          onClick={onSeek}
+        >
+          <div
+            className="absolute inset-y-0 left-0"
+            style={{
+              width: `${progress * 100}%`,
+              background:
+                'linear-gradient(to right, rgba(212,160,86,0.7), #e07b3a 50%, rgba(212,160,86,0.9))',
+              boxShadow: '0 0 8px rgba(224,123,58,0.7)',
+            }}
+          />
+          <span
+            className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-kada-milk opacity-0 transition group-hover:opacity-100"
+            style={{
+              left: `calc(${progress * 100}% - 4px)`,
+              boxShadow: '0 0 8px rgba(255,255,255,0.7)',
+            }}
+          />
+        </div>
+
+        {/* Mobile-only time row */}
+        <div className="flex sm:hidden items-center justify-between px-4 pb-2 pt-1 font-sans text-[10px] tabular-nums text-kada-milk/60">
+          <span>{fmtTime(current)}</span>
+          <span>{fmtTime(duration)}</span>
         </div>
       </div>
-    </div>
-  )
-}
 
-function CtrlBtn({ onClick, label, children }) {
-  return (
-    <button
-      onClick={onClick}
-      aria-label={label}
-      className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full text-kada-milk/80 transition hover:bg-kada-milk/10 hover:text-kada-amber"
-    >
-      {children}
-    </button>
+      {/* Ambient glow under the player */}
+      <div
+        className="pointer-events-none absolute inset-x-10 -bottom-4 h-8 rounded-full opacity-60 blur-2xl"
+        style={{ background: 'radial-gradient(ellipse, rgba(224,123,58,0.45), transparent 70%)' }}
+        aria-hidden
+      />
+    </div>
   )
 }
