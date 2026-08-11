@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { loadPlaylist, PLAYLIST_ID } from '../playlist'
+import { loadPlaylist } from '../playlist'
 
 function fmtTime(s) {
   if (!Number.isFinite(s) || s < 0) s = 0
@@ -47,12 +47,12 @@ function Waveform({ active }) {
   )
 }
 
-function AlbumCover({ src, playing }) {
+function AlbumCover({ src, playing, swapKey }) {
   return (
-    <div className="relative shrink-0">
+    <div className="relative shrink-0" style={{ perspective: '600px' }}>
       <div
-        className="relative h-12 w-12 xs:h-14 sm:h-[72px] sm:w-[72px]"
-        style={{ animation: 'coverPop 0.6s ease-out' }}
+        key={swapKey}
+        className="relative h-12 w-12 xs:h-14 sm:h-[72px] sm:w-[72px] vinyl-swap"
       >
         <div
           className="absolute inset-0 rounded-full"
@@ -101,29 +101,90 @@ function AlbumCover({ src, playing }) {
       </div>
       <style>{`
         @keyframes vinylSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes coverPop { 0% { transform: scale(0.92); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes vinylSwapIn {
+          0%   { transform: translateX(120%) rotate(35deg); opacity: 0; }
+          60%  { opacity: 1; }
+          100% { transform: translateX(0)     rotate(0deg);  opacity: 1; }
+        }
+        .vinyl-swap {
+          animation: vinylSwapIn 0.65s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+          will-change: transform, opacity;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .vinyl-swap { animation: none; }
+        }
       `}</style>
     </div>
   )
+}
+
+function buildShuffledIds(ids, pin = null) {
+  const arr = [...ids]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  if (pin) {
+    const i = arr.indexOf(pin)
+    if (i > 0) {
+      const [head] = arr.splice(i, 1)
+      arr.unshift(head)
+    }
+  }
+  return arr
 }
 
 export default function MusicPlayer() {
   const hostRef = useRef(null)
   const playerRef = useRef(null)
   const rafRef = useRef(0)
+  const loadedIdRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [muted, setMuted] = useState(false)
   const [tracks, setTracks] = useState([])
-  const [index, setIndex] = useState(0)
+  const [order, setOrder] = useState([])
+  const [shuffle, setShuffle] = useState(() => {
+    try { return localStorage.getItem('kp_shuffle') === '1' } catch { return false }
+  })
+  const [currentVideoId, setCurrentVideoId] = useState(null)
   const [current, setCurrent] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [swapKey, setSwapKey] = useState(0)
 
   useEffect(() => {
     loadPlaylist()
-      .then((t) => setTracks(Array.isArray(t) ? t : []))
+      .then((t) => {
+        const list = Array.isArray(t) ? t : []
+        setTracks(list)
+      })
       .catch(() => setTracks([]))
   }, [])
+
+  useEffect(() => {
+    if (tracks.length === 0) return
+    setOrder((prev) => {
+      const ids = tracks.map((x) => x.videoId).filter(Boolean)
+      if (prev.length !== ids.length) {
+        return shuffle ? buildShuffledIds(ids, currentVideoId) : ids
+      }
+      const prevSet = new Set(prev)
+      const allKnown = ids.every((id) => prevSet.has(id))
+      if (!allKnown) {
+        return shuffle ? buildShuffledIds(ids, currentVideoId) : ids
+      }
+      if (shuffle) return buildShuffledIds(ids, currentVideoId)
+      return ids
+    })
+  }, [tracks, shuffle, currentVideoId])
+
+  useEffect(() => {
+    if (!currentVideoId && order.length > 0) setCurrentVideoId(order[0])
+  }, [order, currentVideoId])
+
+  useEffect(() => {
+    try { localStorage.setItem('kp_shuffle', shuffle ? '1' : '0') } catch {}
+  }, [shuffle])
 
   useEffect(() => {
     let cancelled = false
@@ -133,9 +194,6 @@ export default function MusicPlayer() {
         height: '0',
         width: '0',
         playerVars: {
-          listType: 'playlist',
-          list: PLAYLIST_ID,
-          loop: 1,
           autoplay: 0,
           controls: 0,
           modestbranding: 1,
@@ -147,14 +205,11 @@ export default function MusicPlayer() {
             try { e.target.unMute() } catch {}
           },
           onStateChange: (e) => {
-            if (e.data === 1) {
-              setPlaying(true)
-              try {
-                const idx = e.target.getPlaylistIndex ? e.target.getPlaylistIndex() : 0
-                if (typeof idx === 'number' && idx >= 0) setIndex(idx)
-              } catch {}
-            } else if (e.data === 2 || e.data === 0) {
+            if (e.data === 1) setPlaying(true)
+            else if (e.data === 2) setPlaying(false)
+            else if (e.data === 0) {
               setPlaying(false)
+              advanceToNext()
             }
           },
         },
@@ -182,14 +237,46 @@ export default function MusicPlayer() {
     return () => cancelAnimationFrame(rafRef.current)
   }, [])
 
+  useEffect(() => {
+    const p = playerRef.current
+    if (!p || !ready || !currentVideoId) return
+    if (loadedIdRef.current === currentVideoId) return
+    loadedIdRef.current = currentVideoId
+    setSwapKey((k) => k + 1)
+    try {
+      p.loadVideoById(currentVideoId)
+    } catch {}
+  }, [currentVideoId, ready])
+
+  const advanceToNext = () => {
+    setCurrentVideoId((cur) => {
+      const o = orderRef.current
+      if (o.length === 0) return cur
+      const idx = cur ? o.indexOf(cur) : -1
+      const nextIdx = idx < 0 ? 0 : (idx + 1) % o.length
+      return o[nextIdx]
+    })
+  }
+
+  const orderRef = useRef(order)
+  useEffect(() => { orderRef.current = order }, [order])
+
   const toggle = () => {
     const p = playerRef.current
     if (!p || !ready) return
     if (playing) { p.pauseVideo(); setPlaying(false) }
     else { try { p.unMute() } catch {}; setMuted(false); p.playVideo() }
   }
-  const next = () => { try { playerRef.current && playerRef.current.nextVideo && playerRef.current.nextVideo() } catch {} }
-  const prev = () => { try { playerRef.current && playerRef.current.previousVideo && playerRef.current.previousVideo() } catch {} }
+  const next = () => advanceToNext()
+  const prev = () => {
+    setCurrentVideoId((cur) => {
+      const o = orderRef.current
+      if (o.length === 0) return cur
+      const idx = cur ? o.indexOf(cur) : -1
+      const prevIdx = idx < 0 ? 0 : (idx - 1 + o.length) % o.length
+      return o[prevIdx]
+    })
+  }
   const onMuteToggle = () => {
     const p = playerRef.current
     if (!p || !ready) return
@@ -203,8 +290,11 @@ export default function MusicPlayer() {
     const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width))
     try { p.seekTo(pct * duration, true) } catch {}
   }
+  const onShuffleToggle = () => setShuffle((s) => !s)
 
-  const track = tracks[index] || {}
+  const track = currentVideoId
+    ? tracks.find((t) => t.videoId === currentVideoId) || {}
+    : (tracks[0] || {})
   const cover = track.thumbnail || ''
   const progress = duration > 0 ? Math.min(1, current / duration) : 0
 
@@ -231,7 +321,7 @@ export default function MusicPlayer() {
 
         <div className="relative flex items-center gap-2 px-3 py-2 sm:gap-4 sm:px-5 sm:py-3">
           {/* LEFT: Album artwork */}
-          <AlbumCover src={cover} playing={playing} />
+          <AlbumCover src={cover} playing={playing} swapKey={swapKey} />
 
           {/* CENTER: Title + meta */}
           <div className="min-w-0 flex-1 pr-1 sm:pr-2">
@@ -278,6 +368,20 @@ export default function MusicPlayer() {
             ) : (
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
             )}
+          </button>
+
+          {/* SHUFFLE toggle */}
+          <button
+            onClick={onShuffleToggle}
+            aria-label="Shuffle"
+            aria-pressed={shuffle}
+            title="Shuffle"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition hover:bg-kada-milk/10"
+            style={{ color: shuffle ? '#e07b3a' : 'rgba(233,213,176,0.75)' }}
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+              <path d="M10.59 9.17 5.41 4 4 5.41l5.17 5.17 1.42-1.41zM14.5 4l2.04 2.04L4 18.59 5.41 20 17.96 7.46 20 9.5V4h-5.5zm.33 9.41-1.41 1.41 3.13 3.13L14.5 20H20v-5.5l-2.04 2.04-3.13-3.13z"/>
+            </svg>
           </button>
 
           {/* PREV button */}
